@@ -1,7 +1,7 @@
-import type { CatalogStore } from "./catalog-store.ts";
-import type { ConnectionService } from "./connection-service.ts";
+import type { CatalogStore, RuntimeActionDefinition } from "./catalog-store.ts";
+import type { ConnectionService, ConnectionSummary } from "./connection-service.ts";
 import type { ActionPolicyService } from "./core/action-policy.ts";
-import type { JsonSchema } from "./core/types.ts";
+import type { JsonSchema, ProviderDefinition } from "./core/types.ts";
 import type { IProviderLoader } from "./providers/provider-loader.ts";
 import type { ActionRunner } from "./server/action-runner.ts";
 
@@ -81,7 +81,7 @@ export function createMcpServer(options: IMcpServerOptions): McpServer {
         query: z.string().optional().describe("Optional case-insensitive app name, service, category, or auth filter."),
       },
     },
-    async ({ query }) => textResult(listApps(options, query)),
+    async ({ query }) => textResult(await listApps(options, query)),
   );
 
   server.registerTool(
@@ -102,7 +102,7 @@ export function createMcpServer(options: IMcpServerOptions): McpServer {
         limit: z.number().int().min(1).max(50).default(20).describe("Maximum number of actions to return."),
       },
     },
-    async ({ query, service, limit }) => textResult(searchActions(options, { query, service, limit })),
+    async ({ query, service, limit }) => textResult(await searchActions(options, { query, service, limit })),
   );
 
   server.registerTool(
@@ -114,7 +114,7 @@ export function createMcpServer(options: IMcpServerOptions): McpServer {
         actionId: z.string().describe("Full action id, for example github.get_current_user."),
       },
     },
-    async ({ actionId }) => textResult(getActionGuide(options, actionId)),
+    async ({ actionId }) => textResult(await getActionGuide(options, actionId)),
   );
 
   server.registerTool(
@@ -137,9 +137,9 @@ export function createMcpServer(options: IMcpServerOptions): McpServer {
   return server;
 }
 
-function listApps(options: IMcpServerOptions, query: string | undefined): unknown {
+async function listApps(options: IMcpServerOptions, query: string | undefined): Promise<unknown> {
   const normalized = query?.trim().toLowerCase();
-  return options.catalog.providers
+  const providers = options.catalog.providers
     .filter((provider) => {
       if (!normalized) {
         return true;
@@ -150,21 +150,28 @@ function listApps(options: IMcpServerOptions, query: string | undefined): unknow
         .toLowerCase()
         .includes(normalized);
     })
-    .map((provider) => ({
-      service: provider.service,
-      displayName: provider.displayName,
-      categories: provider.categories,
-      authTypes: provider.authTypes,
-      actionCount: provider.actions.length,
-    }));
+    .map(async (provider) => {
+      const connection = await options.connections.getConnectionSummary(provider.service);
+      return {
+        service: provider.service,
+        displayName: provider.displayName,
+        categories: provider.categories,
+        authTypes: provider.authTypes,
+        actionCount: provider.actions.length,
+        executableActionCount: provider.actions.filter((action) => action.execution.locallyExecutable).length,
+        connection,
+      };
+    });
+
+  return Promise.all(providers);
 }
 
-function searchActions(
+async function searchActions(
   options: IMcpServerOptions,
   input: { query?: string; service?: string; limit: number },
-): unknown {
+): Promise<unknown> {
   const normalized = input.query?.trim().toLowerCase();
-  return options.catalog.actions
+  const actions = options.catalog.actions
     .filter((action) => {
       if (input.service && action.service !== input.service) {
         return false;
@@ -179,19 +186,19 @@ function searchActions(
         .includes(normalized);
     })
     .slice(0, input.limit)
-    .map((action) => ({
+    .map(async (action) => ({
       id: action.id,
       service: action.service,
       name: action.name,
       description: action.description,
-      execution: action.execution,
-      policy: options.actionPolicy?.evaluate(action) ?? { allowed: true },
-      requiredScopes: action.requiredScopes,
+      capability: await describeActionCapability(options, action),
       inputSummary: summarizeInputSchema(action.inputSchema),
     }));
+
+  return Promise.all(actions);
 }
 
-function getActionGuide(options: IMcpServerOptions, actionId: string): unknown {
+async function getActionGuide(options: IMcpServerOptions, actionId: string): Promise<unknown> {
   const action = options.catalog.actionsById.get(actionId);
   if (!action) {
     return {
@@ -205,7 +212,8 @@ function getActionGuide(options: IMcpServerOptions, actionId: string): unknown {
 
   return {
     ok: true,
-    markdown: renderActionMarkdown(action),
+    capability: await describeActionCapability(options, action),
+    markdown: renderActionMarkdown(action, await describeActionMarkdownContext(options, action)),
   };
 }
 
@@ -245,6 +253,40 @@ function summarizeInputSchema(schema: JsonSchema): unknown {
     type: describeSchemaType(property),
     description: typeof property.description === "string" ? property.description : "",
   }));
+}
+
+type ActionCapability = {
+  execution: RuntimeActionDefinition["execution"];
+  authTypes: ProviderDefinition["authTypes"];
+  requiredScopes: string[];
+  providerPermissions: string[];
+  policy: ReturnType<ActionPolicyService["evaluate"]> | { allowed: true };
+  connection?: ConnectionSummary;
+};
+
+async function describeActionCapability(
+  options: IMcpServerOptions,
+  action: RuntimeActionDefinition,
+): Promise<ActionCapability> {
+  const provider = options.catalog.providers.find((candidate) => candidate.service === action.service);
+  return {
+    execution: action.execution,
+    authTypes: provider?.authTypes ?? [],
+    requiredScopes: action.requiredScopes,
+    providerPermissions: action.providerPermissions,
+    policy: options.actionPolicy?.evaluate(action) ?? { allowed: true },
+    connection: await options.connections.getConnectionSummary(action.service),
+  };
+}
+
+async function describeActionMarkdownContext(
+  options: IMcpServerOptions,
+  action: RuntimeActionDefinition,
+): Promise<{ connection?: ConnectionSummary; providerPermissions: string[] }> {
+  return {
+    connection: await options.connections.getConnectionSummary(action.service),
+    providerPermissions: action.providerPermissions,
+  };
 }
 
 function describeSchemaType(schema: JsonSchema | undefined): string {

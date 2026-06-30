@@ -3,6 +3,8 @@ import type {
   ApiKeyAuthDefinition,
   AuthType,
   CredentialDefinition,
+  CredentialProfile,
+  CredentialValidationResult,
   CustomCredentialAuthDefinition,
   ProviderDefinition,
   ResolvedCredential,
@@ -20,6 +22,7 @@ export type ConnectionSummary = {
   authType: AuthType;
   configured: boolean;
   virtual: boolean;
+  profile: CredentialProfile;
 };
 
 /**
@@ -73,6 +76,11 @@ export class ConnectionService {
       .filter((summary): summary is ConnectionSummary => summary != null);
   }
 
+  async getConnectionSummary(service: string): Promise<ConnectionSummary | undefined> {
+    const provider = this.getProvider(service);
+    return this.toConnectionSummary(provider, await this.store.get(service));
+  }
+
   async getCredential(service: string): Promise<ResolvedCredential | undefined> {
     const provider = this.getProvider(service);
     const stored = await this.store.get(service);
@@ -89,12 +97,7 @@ export class ConnectionService {
       throw new ConnectionError("unsupported_auth_type", `${service} does not support no_auth.`);
     }
 
-    return {
-      service,
-      authType: "no_auth",
-      configured: true,
-      virtual: true,
-    };
+    return this.toConnectionSummary(provider, undefined)!;
   }
 
   async connectWithApiKey(service: string, input: ConnectWithCredentialInput): Promise<ConnectionSummary> {
@@ -115,16 +118,16 @@ export class ConnectionService {
       authType: "api_key",
       apiKey,
       values,
-      metadata: await this.validateApiKeyCredential(service, { apiKey, values }),
+      ...this.buildCredentialRuntimeData(
+        provider,
+        "api_key",
+        values,
+        await this.validateApiKeyCredential(service, { apiKey, values }),
+      ),
     };
     await this.store.set(service, credential);
 
-    return {
-      service,
-      authType: "api_key",
-      configured: true,
-      virtual: false,
-    };
+    return this.toConnectionSummary(provider, credential)!;
   }
 
   async connectWithCustomCredential(service: string, input: ConnectWithCredentialInput): Promise<ConnectionSummary> {
@@ -142,16 +145,16 @@ export class ConnectionService {
     const credential: ResolvedCredential = {
       authType: "custom_credential",
       values,
-      metadata: await this.validateCustomCredential(service, { values }),
+      ...this.buildCredentialRuntimeData(
+        provider,
+        "custom_credential",
+        values,
+        await this.validateCustomCredential(service, { values }),
+      ),
     };
     await this.store.set(service, credential);
 
-    return {
-      service,
-      authType: "custom_credential",
-      configured: true,
-      virtual: false,
-    };
+    return this.toConnectionSummary(provider, credential)!;
   }
 
   async setOAuthCredential(
@@ -165,17 +168,14 @@ export class ConnectionService {
 
     await this.store.set(service, {
       ...credential,
-      metadata: {
-        ...credential.metadata,
-        ...(await this.validateOAuthCredential(service, credential)),
-      },
+      ...this.mergeCredentialRuntimeData(
+        provider,
+        "oauth2",
+        credential,
+        await this.validateOAuthCredential(service, credential),
+      ),
     });
-    return {
-      service,
-      authType: "oauth2",
-      configured: true,
-      virtual: false,
-    };
+    return this.toConnectionSummary(provider, await this.store.get(service))!;
   }
 
   async disconnect(service: string): Promise<ConnectionSummary | { service: string; configured: false }> {
@@ -192,12 +192,13 @@ export class ConnectionService {
     provider: ProviderDefinition,
     credential: ResolvedCredential | undefined,
   ): ConnectionSummary | undefined {
-    if (credential) {
+    if (credential && credential.authType !== "no_auth") {
       return {
         service: provider.service,
         authType: credential.authType,
         configured: true,
         virtual: false,
+        profile: credential.profile,
       };
     }
 
@@ -207,6 +208,7 @@ export class ConnectionService {
         authType: "no_auth",
         configured: true,
         virtual: true,
+        profile: this.createNoAuthProfile(provider),
       };
     }
 
@@ -247,7 +249,7 @@ export class ConnectionService {
   private async validateApiKeyCredential(
     service: string,
     input: { apiKey: string; values: Record<string, string> },
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CredentialValidationResult> {
     const validators = await this.providerLoader.loadCredentialValidators(service);
     return this.runCredentialValidator(service, () => validators?.apiKey?.(input, { fetcher: fetch }));
   }
@@ -255,7 +257,7 @@ export class ConnectionService {
   private async validateCustomCredential(
     service: string,
     input: { values: Record<string, string> },
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CredentialValidationResult> {
     const validators = await this.providerLoader.loadCredentialValidators(service);
     return this.runCredentialValidator(service, () => validators?.customCredential?.(input, { fetcher: fetch }));
   }
@@ -263,7 +265,7 @@ export class ConnectionService {
   private async validateOAuthCredential(
     service: string,
     credential: Extract<ResolvedCredential, { authType: "oauth2" }>,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CredentialValidationResult> {
     const validators = await this.providerLoader.loadCredentialValidators(service);
     return this.runCredentialValidator(service, () => validators?.oauth2?.(credential, { fetcher: fetch }));
   }
@@ -298,15 +300,104 @@ export class ConnectionService {
   private async runCredentialValidator(
     service: string,
     validate: () => Promise<{ metadata?: Record<string, unknown> } | void> | undefined,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<CredentialValidationResult> {
     try {
-      return (await validate())?.metadata ?? {};
+      return (await validate()) ?? {};
     } catch (error) {
       throw new ConnectionError(
         "credential_verification_failed",
         error instanceof Error ? error.message : `${service} credential verification failed.`,
       );
     }
+  }
+
+  private buildCredentialRuntimeData(
+    provider: ProviderDefinition,
+    authType: Exclude<AuthType, "no_auth">,
+    credentialValues: Record<string, string>,
+    validation: CredentialValidationResult,
+  ): { profile: CredentialProfile; metadata: Record<string, unknown> } {
+    return {
+      profile: this.createCredentialProfile(provider, authType, credentialValues, validation),
+      metadata: validation.metadata ?? {},
+    };
+  }
+
+  private mergeCredentialRuntimeData(
+    provider: ProviderDefinition,
+    authType: Exclude<AuthType, "no_auth">,
+    credential: Extract<ResolvedCredential, { authType: "oauth2" }>,
+    validation: CredentialValidationResult,
+  ): { profile: CredentialProfile; metadata: Record<string, unknown> } {
+    return {
+      profile: this.createCredentialProfile(provider, authType, {}, validation, {
+        profile: credential.profile,
+        metadata: credential.metadata,
+      }),
+      metadata: {
+        ...credential.metadata,
+        ...(validation.metadata ?? {}),
+      },
+    };
+  }
+
+  private createCredentialProfile(
+    provider: ProviderDefinition,
+    authType: Exclude<AuthType, "no_auth">,
+    credentialValues: Record<string, string>,
+    validation: CredentialValidationResult,
+    previous?: { profile: CredentialProfile; metadata: Record<string, unknown> },
+  ): CredentialProfile {
+    const accountId =
+      validation.profile?.accountId ??
+      readLegacyString(validation.metadata, "providerAccountId") ??
+      readLegacyString(validation.metadata, "accountId") ??
+      previous?.profile.accountId ??
+      this.createDefaultAccountId(provider, authType, credentialValues);
+    const displayName =
+      validation.profile?.displayName ??
+      readLegacyString(validation.metadata, "accountLabel") ??
+      readLegacyString(validation.metadata, "displayName") ??
+      previous?.profile.displayName ??
+      this.createDefaultDisplayName(provider, authType);
+
+    const grantedScopes =
+      validation.profile?.grantedScopes ??
+      validation.grantedScopes ??
+      parseScopeString(readLegacyString(validation.metadata, "scope")) ??
+      parseScopeString(readLegacyString(previous?.metadata, "scope")) ??
+      previous?.profile.grantedScopes;
+
+    return {
+      accountId,
+      displayName,
+      grantedScopes: normalizeGrantedScopes(grantedScopes),
+    };
+  }
+
+  private createNoAuthProfile(provider: ProviderDefinition): CredentialProfile {
+    return {
+      accountId: `${provider.service}:public`,
+      displayName: `${provider.displayName} Public`,
+      grantedScopes: [],
+    };
+  }
+
+  private createDefaultAccountId(
+    provider: ProviderDefinition,
+    authType: Exclude<AuthType, "no_auth">,
+    credentialValues: Record<string, string>,
+  ): string {
+    const visibleValues = Object.entries(credentialValues)
+      .filter(([key]) => key !== "apiKey")
+      .map(([key, value]) => `${key}:${value}`);
+    return visibleValues.length > 0
+      ? `${provider.service}:${visibleValues.join(":")}`
+      : `${provider.service}:${authType}`;
+  }
+
+  private createDefaultDisplayName(provider: ProviderDefinition, authType: Exclude<AuthType, "no_auth">): string {
+    return `${provider.displayName} ${authType === "api_key" ? "API Key" : "Credential"}`;
   }
 }
 
@@ -332,6 +423,19 @@ function createApiKeyFields(auth: ApiKeyAuthDefinition): CredentialDefinition[] 
     },
     ...(auth.extraFields ?? []),
   ];
+}
+
+function normalizeGrantedScopes(value: string[] | undefined): string[] {
+  return [...new Set((value ?? []).map((scope) => scope.trim()).filter(Boolean))];
+}
+
+function parseScopeString(value: string | undefined): string[] | undefined {
+  return value ? value.split(/[,\s]+/) : undefined;
+}
+
+function readLegacyString(metadata: Record<string, unknown> | undefined, key: string): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 /**

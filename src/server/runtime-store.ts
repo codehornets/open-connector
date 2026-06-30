@@ -1,3 +1,5 @@
+import type { CredentialProfile } from "../core/types.ts";
+
 export type RunLogCaller = "http" | "mcp" | "web";
 
 /**
@@ -11,6 +13,7 @@ export type RunLog = {
   completedAt: string;
   durationMs: number;
   ok: boolean;
+  connectionProfile?: CredentialProfile;
   inputSummary?: unknown;
   errorCode?: string;
   errorMessage?: string;

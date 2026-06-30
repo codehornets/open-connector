@@ -33,18 +33,32 @@ export const executors: ProviderExecutors = defineProviderExecutors<GitHubAction
 });
 
 export const credentialValidators: CredentialValidators = {
-  async apiKey(input, { fetcher }): Promise<void> {
-    await validateGitHubToken(input.apiKey, fetcher);
+  async apiKey(input, { fetcher }) {
+    return validateGitHubToken(input.apiKey, fetcher);
   },
-  async oauth2(input, { fetcher }): Promise<void> {
-    await validateGitHubToken(input.accessToken, fetcher);
+  async oauth2(input, { fetcher }) {
+    return validateGitHubToken(input.accessToken, fetcher);
   },
 };
 
-async function validateGitHubToken(accessToken: string, fetcher: typeof fetch): Promise<void> {
-  await githubRequestJson<Record<string, unknown>>({
+async function validateGitHubToken(accessToken: string, fetcher: typeof fetch) {
+  const user = await githubRequestJson<Record<string, unknown>>({
     path: "/user",
     accessToken,
     fetcher,
   });
+
+  const login = typeof user.login === "string" ? user.login : undefined;
+  const id = user.id === undefined ? undefined : String(user.id);
+  const name = typeof user.name === "string" && user.name.trim() ? user.name.trim() : undefined;
+
+  return {
+    profile: {
+      accountId: login ?? id ?? "github:user",
+      displayName: name ?? login ?? id ?? "GitHub User",
+    },
+    metadata: {
+      currentUser: user,
+    },
+  };
 }

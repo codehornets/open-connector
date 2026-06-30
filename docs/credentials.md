@@ -45,6 +45,19 @@ All submitted string values are trimmed. Empty strings are treated as missing. U
 fields are rejected instead of being silently stored, because credential forms, scripts, and provider
 definitions should fail fast when they drift.
 
+## Connection identity
+
+When a provider can cheaply validate credentials against a current-user or current-account endpoint,
+its validator stores a stable connection profile:
+
+- `accountId`: provider-side user, workspace, bot, account, or token identifier.
+- `displayName`: human-readable account label.
+- `grantedScopes`: provider-native scopes granted to the credential, when known.
+
+The runtime exposes this profile in `/api/connections`, MCP action discovery, action agent guides,
+and recent run logs. Agents should use it to understand which account an action will run as; raw
+provider tokens are never exposed.
+
 ## API key example
 
 ```bash
@@ -173,7 +186,7 @@ when API-token authentication is enabled.
 Use `OOMOL_CONNECT_ALLOWED_ACTIONS` to expose only selected actions to HTTP and MCP execution:
 
 ```bash
-OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_authenticated_user" npm run dev
+OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_current_user" npm run dev
 ```
 
 Use `OOMOL_CONNECT_BLOCKED_ACTIONS` to deny specific actions even when a broader allowlist includes

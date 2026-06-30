@@ -172,6 +172,8 @@ export type ResolvedCredential =
       apiKey: string;
       /** Trimmed credential values keyed by provider credential field id. */
       values: Record<string, string>;
+      /** Stable provider account identity safe to show in local APIs and MCP. */
+      profile: CredentialProfile;
       /** Runtime-owned metadata that is not sent by catalog definitions. */
       metadata: Record<string, unknown>;
     }
@@ -180,6 +182,8 @@ export type ResolvedCredential =
       authType: "custom_credential";
       /** Trimmed credential values keyed by provider credential field id. */
       values: Record<string, string>;
+      /** Stable provider account identity safe to show in local APIs and MCP. */
+      profile: CredentialProfile;
       /** Runtime-owned metadata that is not sent by catalog definitions. */
       metadata: Record<string, unknown>;
     }
@@ -194,6 +198,8 @@ export type ResolvedCredential =
       expiresAt?: string;
       /** OAuth refresh token, if the provider issued one. */
       refreshToken?: string;
+      /** Stable provider account identity safe to show in local APIs and MCP. */
+      profile: CredentialProfile;
       /** Raw token metadata such as provider scope or token type. */
       metadata: Record<string, unknown>;
     };
@@ -215,7 +221,47 @@ export type ExecutionContext = {
  * Optional metadata returned by provider credential validation.
  */
 export type CredentialValidationResult = {
+  /**
+   * Provider-side account identity represented by this credential.
+   *
+   * Validators should return this when the provider exposes a cheap current-user
+   * or current-account endpoint. The local runtime exposes this profile to
+   * users and agents so they can see which account an action will use.
+   */
+  profile?: CredentialProfileInput;
+  /** Provider-native scopes granted to this credential, when known. */
+  grantedScopes?: string[];
+  /**
+   * Provider-specific non-secret metadata kept for executors.
+   *
+   * Do not rely on this shape in public APIs. Use `profile` and
+   * `grantedScopes` for agent-visible identity and capability data.
+   */
   metadata?: Record<string, unknown>;
+};
+
+/**
+ * Stable provider account identity stored with a local credential.
+ */
+export type CredentialProfile = {
+  /** Provider-side account, user, bot, workspace, or token identifier. */
+  accountId: string;
+  /** Human-readable label for local users and agents. */
+  displayName: string;
+  /** Provider-native scopes granted to this credential, when known. */
+  grantedScopes: string[];
+};
+
+/**
+ * Validator-produced account identity before runtime defaults are applied.
+ */
+export type CredentialProfileInput = {
+  /** Provider-side account, user, bot, workspace, or token identifier. */
+  accountId?: string;
+  /** Human-readable label for local users and agents. */
+  displayName?: string;
+  /** Provider-native scopes granted to this credential, when known. */
+  grantedScopes?: string[];
 };
 
 /**

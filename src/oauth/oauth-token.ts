@@ -98,6 +98,11 @@ async function requestToken(input: TokenRequest): Promise<Extract<ResolvedCreden
     tokenType,
     refreshToken: optionalString(payload.refresh_token),
     expiresAt: expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : undefined,
+    profile: {
+      accountId: "oauth2",
+      displayName: "OAuth Credential",
+      grantedScopes: [],
+    },
     metadata: {
       rawTokenType: payload.token_type,
       scope: payload.scope,

@@ -25,6 +25,11 @@ describe("runtime data backup format", () => {
             authType: "api_key",
             apiKey: "github-token",
             values: { apiKey: "github-token" },
+            profile: {
+              accountId: "github:octocat",
+              displayName: "octocat",
+              grantedScopes: [],
+            },
             metadata: {},
           },
         },

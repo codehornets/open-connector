@@ -110,10 +110,10 @@ export const executors: ProviderExecutors = defineProviderExecutors<NotionAction
 });
 
 export const credentialValidators: CredentialValidators = {
-  async apiKey(input, { fetcher }): Promise<{ metadata: Record<string, unknown> }> {
+  async apiKey(input, { fetcher }) {
     return validateNotionCredential(input.apiKey, fetcher);
   },
-  async oauth2(input, { fetcher }): Promise<{ metadata: Record<string, unknown> }> {
+  async oauth2(input, { fetcher }) {
     return validateNotionCredential(input.accessToken, fetcher);
   },
 };
@@ -121,9 +121,18 @@ export const credentialValidators: CredentialValidators = {
 async function validateNotionCredential(
   accessToken: string,
   fetcher: typeof fetch,
-): Promise<{ metadata: Record<string, unknown> }> {
+): Promise<{
+  profile: { accountId: string; displayName: string };
+  metadata: Record<string, unknown>;
+}> {
   const profile = await fetchNotionCurrentAccount(accessToken, fetcher);
-  return { metadata: profile.providerMetadata };
+  return {
+    profile: {
+      accountId: profile.providerAccountId,
+      displayName: profile.accountLabel,
+    },
+    metadata: profile.providerMetadata,
+  };
 }
 
 async function fetchNotionCurrentAccount(accessToken: string, fetcher: typeof fetch) {

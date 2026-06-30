@@ -25,6 +25,19 @@ List MCP tool metadata:
 curl -s http://localhost:3000/mcp/tools
 ```
 
+Inspect local connections and the account identity exposed to users and agents:
+
+```bash
+curl -s http://localhost:3000/api/connections
+```
+
+Get a compact action guide with required scopes, provider permissions, current connection identity,
+and HTTP execution examples:
+
+```bash
+curl -s http://localhost:3000/api/actions/hackernews.get_top_stories/agent.md
+```
+
 The web console is served at `http://localhost:3000` after building the `web` workspace:
 
 ```bash
@@ -60,7 +73,7 @@ reachable from outside the local machine or container.
 Constrain executable actions with comma-separated action ids or provider wildcards:
 
 ```bash
-OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_authenticated_user" npm run dev
+OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_current_user" npm run dev
 ```
 
 Export an encrypted local backup:

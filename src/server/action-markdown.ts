@@ -1,10 +1,16 @@
+import type { ConnectionSummary } from "../connection-service.ts";
 import type { ActionDefinition, JsonSchema } from "../core/types.ts";
+
+export type ActionMarkdownContext = {
+  connection?: ConnectionSummary;
+  providerPermissions?: string[];
+};
 
 /**
  * Render a compact action guide for coding agents and humans who want the raw
  * local HTTP contract without browsing the full catalog JSON.
  */
-export function renderActionMarkdown(action: ActionDefinition): string {
+export function renderActionMarkdown(action: ActionDefinition, context: ActionMarkdownContext = {}): string {
   const exampleInput = buildExampleInput(action.inputSchema);
   const parameterRows = describeParameters(action.inputSchema);
 
@@ -42,11 +48,42 @@ export function renderActionMarkdown(action: ActionDefinition): string {
       ? action.requiredScopes.map((scope) => `- \`${scope}\``).join("\n")
       : "No provider scopes are required.",
     "",
+    "## Provider Permissions",
+    "",
+    (context.providerPermissions ?? action.providerPermissions).length > 0
+      ? (context.providerPermissions ?? action.providerPermissions)
+          .map((permission) => `- \`${permission}\``)
+          .join("\n")
+      : "No provider permissions are declared.",
+    "",
+    "## Current Connection",
+    "",
+    describeConnection(context.connection),
+    "",
     "## Notes For Agents",
     "",
     "- Use the local runtime endpoint above; do not call provider APIs directly unless the user asks.",
     "- Send JSON with a top-level `input` object.",
+    "- Check the current connection and provider scopes before choosing actions on the user's behalf.",
     "- If execution fails with a credential error, ask the user to connect the app in the local console.",
+  ].join("\n");
+}
+
+function describeConnection(connection: ConnectionSummary | undefined): string {
+  if (!connection) {
+    return "This provider is not connected in the local runtime.";
+  }
+
+  const scopes =
+    connection.profile.grantedScopes.length > 0
+      ? connection.profile.grantedScopes.map((scope) => `\`${scope}\``).join(", ")
+      : "unknown or not provider-scoped";
+
+  return [
+    `- Account: ${connection.profile.displayName}`,
+    `- Account ID: \`${connection.profile.accountId}\``,
+    `- Auth type: \`${connection.authType}\``,
+    `- Granted scopes: ${scopes}`,
   ].join("\n");
 }
 

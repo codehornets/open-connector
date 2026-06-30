@@ -6,6 +6,11 @@ import { AesGcmSecretCodec } from "./secret-codec.ts";
 import { SqliteRuntimeDatabase } from "./sqlite-runtime-store.ts";
 
 const tempDirs: string[] = [];
+const githubProfile = {
+  accountId: "github:octocat",
+  displayName: "octocat",
+  grantedScopes: [],
+};
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((path) => rm(path, { recursive: true, force: true })));
@@ -20,6 +25,7 @@ describe("SqliteRuntimeDatabase", () => {
       authType: "api_key",
       apiKey: "github-token",
       values: { apiKey: "github-token" },
+      profile: githubProfile,
       metadata: { login: "octocat" },
     });
     await first.oauthClientConfigStore.set({
@@ -96,6 +102,7 @@ describe("SqliteRuntimeDatabase", () => {
       authType: "api_key",
       apiKey: "github-token",
       values: { apiKey: "github-token" },
+      profile: githubProfile,
       metadata: {},
     });
     first.close();
@@ -119,6 +126,7 @@ describe("SqliteRuntimeDatabase", () => {
       authType: "api_key",
       apiKey: "github-token",
       values: { apiKey: "github-token" },
+      profile: githubProfile,
       metadata: {},
     });
     source.runLogStore.add(createRun("run-1", "2026-06-30T00:00:00.000Z"));
@@ -148,6 +156,7 @@ describe("SqliteRuntimeDatabase", () => {
       authType: "api_key",
       apiKey: "github-token",
       values: { apiKey: "github-token" },
+      profile: githubProfile,
       metadata: {},
     });
     const snapshot = await oldDatabase.exportSnapshot();

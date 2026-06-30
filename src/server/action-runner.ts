@@ -38,6 +38,7 @@ export class ActionRunner {
       return undefined;
     }
 
+    const connection = await this.options.connections.getConnectionSummary(action.service);
     const startedAtMs = Date.now();
     const startedAt = new Date(startedAtMs).toISOString();
     const executor = action.execution.locallyExecutable
@@ -64,6 +65,7 @@ export class ActionRunner {
       completedAt: new Date(completedAtMs).toISOString(),
       durationMs: completedAtMs - startedAtMs,
       ok: result.ok,
+      connectionProfile: connection?.profile,
       inputSummary: summarizeForRunLog(input.input),
       errorCode: result.error?.code,
       errorMessage: result.error?.message,

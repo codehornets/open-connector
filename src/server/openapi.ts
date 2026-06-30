@@ -179,9 +179,28 @@ export function createOpenApiDocument(
             virtual: jsonSchema.boolean({
               description: "Whether the connection needs no stored secret.",
             }),
+            profile: jsonSchema.object(
+              {
+                accountId: jsonSchema.string({
+                  description: "Provider-side account, user, workspace, bot, or token identifier.",
+                }),
+                displayName: jsonSchema.string({
+                  description: "Human-readable account label shown to users and agents.",
+                }),
+                grantedScopes: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Provider-native scopes granted to the stored credential, when known.",
+                },
+              },
+              {
+                required: ["accountId", "displayName", "grantedScopes"],
+                description: "Stable provider account identity safe for users and agents.",
+              },
+            ),
           },
           {
-            required: ["service", "authType", "configured", "virtual"],
+            required: ["service", "authType", "configured", "virtual", "profile"],
             description: "Local provider connection summary.",
           },
         ),
@@ -218,6 +237,9 @@ export function createOpenApiDocument(
             completedAt: jsonSchema.string({ description: "Completion timestamp." }),
             durationMs: jsonSchema.number({ description: "Run duration in milliseconds." }),
             ok: jsonSchema.boolean({ description: "Whether the run succeeded." }),
+            connectionProfile: jsonSchema.unknownObject(
+              "Provider account identity that the action used, when a connection was available.",
+            ),
             inputSummary: {
               description: "Redacted action input summary.",
             },

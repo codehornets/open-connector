@@ -18,4 +18,8 @@ At runtime, catalog responses add execution status that is not stored in generat
 - `needsCredential`: the provider needs a configured local connection before execution.
 - `noAuthRunnable`: the action belongs to a provider that can run without stored credentials.
 
+Action definitions also declare provider-native `requiredScopes` and `providerPermissions`. The
+runtime exposes those fields through HTTP and MCP discovery together with the current connection
+profile, so agents can see both the capability they are about to use and the account it will run as.
+
 For the full contribution workflow, see `.codex/skills/add-provider/SKILL.md`.

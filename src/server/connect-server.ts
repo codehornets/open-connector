@@ -139,15 +139,22 @@ export class ConnectServer {
     return context.json(action);
   }
 
-  private getActionMarkdown(context: Context, actionId: string): Response {
+  private async getActionMarkdown(context: Context, actionId: string): Promise<Response> {
     const action = this.options.catalog.actionsById.get(actionId);
     if (!action) {
       return notFound(context);
     }
 
-    return context.text(renderActionMarkdown(action), 200, {
-      "content-type": "text/markdown; charset=utf-8",
-    });
+    return context.text(
+      renderActionMarkdown(action, {
+        connection: await this.options.connections.getConnectionSummary(action.service),
+        providerPermissions: action.providerPermissions,
+      }),
+      200,
+      {
+        "content-type": "text/markdown; charset=utf-8",
+      },
+    );
   }
 
   private async executeAction(context: Context, actionId: string): Promise<Response> {

@@ -100,7 +100,7 @@ describe("ConnectServer", () => {
 
   it("stores redacted run log summaries for HTTP action execution", async () => {
     const runs = new MemoryRunLogStore();
-    const app = createTestServer(
+    const server = createTestServer(
       [
         {
           ...apiKeyProvider,
@@ -111,7 +111,14 @@ describe("ConnectServer", () => {
         providerLoader: new EchoProviderLoader(),
         runs,
       },
-    ).createApp();
+    );
+    const app = server.createApp();
+
+    await app.request("/api/connections/example/api-key", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ values: { apiKey: "example-key" } }),
+    });
 
     const response = await app.request("/api/actions/example.echo", {
       method: "POST",
@@ -131,6 +138,11 @@ describe("ConnectServer", () => {
         actionId: "example.echo",
         caller: "http",
         ok: true,
+        connectionProfile: {
+          accountId: "example-account",
+          displayName: "Example Account",
+          grantedScopes: [],
+        },
         inputSummary: {
           query: "hello",
           apiKey: "[redacted]",
@@ -138,6 +150,41 @@ describe("ConnectServer", () => {
         },
       },
     ]);
+  });
+
+  it("renders agent guides with current connection and provider permissions", async () => {
+    const app = createTestServer(
+      [
+        {
+          ...apiKeyProvider,
+          actions: [
+            {
+              ...echoAction,
+              requiredScopes: ["messages.read"],
+              providerPermissions: ["messages:read"],
+            },
+          ],
+        },
+      ],
+      {
+        providerLoader: new EchoProviderLoader(),
+      },
+    ).createApp();
+
+    await app.request("/api/connections/example/api-key", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ values: { apiKey: "example-key" } }),
+    });
+
+    const response = await app.request("/api/actions/example.echo/agent.md");
+
+    expect(response.status).toBe(200);
+    const markdown = await response.text();
+    expect(markdown).toContain("## Current Connection");
+    expect(markdown).toContain("Example Account");
+    expect(markdown).toContain("`example-account`");
+    expect(markdown).toContain("`messages:read`");
   });
 
   it("applies local action policy before executing HTTP actions", async () => {
@@ -245,8 +292,26 @@ class EchoProviderLoader implements IProviderLoader {
     return async (input) => ({ ok: true, output: input });
   }
 
-  async loadCredentialValidators(): Promise<undefined> {
-    return undefined;
+  async loadCredentialValidators(): Promise<{
+    apiKey(): Promise<{
+      profile: {
+        accountId: string;
+        displayName: string;
+        grantedScopes: string[];
+      };
+    }>;
+  }> {
+    return {
+      async apiKey() {
+        return {
+          profile: {
+            accountId: "example-account",
+            displayName: "Example Account",
+            grantedScopes: [],
+          },
+        };
+      },
+    };
   }
 }
 

@@ -13,6 +13,7 @@ execution boundary.
 
 - Local app and action catalog browsing
 - Local credential configuration
+- Agent-visible connection identity and provider scope metadata
 - SQLite-backed local runtime storage
 - Action execution through HTTP
 - MCP endpoint and tool metadata for agents
@@ -66,6 +67,10 @@ Set `OOMOL_CONNECT_ENCRYPTION_KEY` to encrypt stored credentials and OAuth clien
 Set `OOMOL_CONNECT_API_TOKEN` to require `Authorization: Bearer <token>` for API and MCP requests.
 Use `OOMOL_CONNECT_ALLOWED_ACTIONS` and `OOMOL_CONNECT_BLOCKED_ACTIONS` to constrain which actions
 agents can execute.
+
+Agents can inspect provider capabilities before execution. Action catalog entries include provider
+scopes and permissions, connection summaries include the current provider account identity, and run
+logs record which account profile was used.
 
 ## Project Layout
 
@@ -143,6 +148,10 @@ The local server currently exposes:
 Credential request fields are declared by each provider's catalog `auth` metadata. The runtime
 rejects unknown credential fields and required fields with empty values so local scripts, future UI
 forms, and provider definitions stay aligned.
+
+Credential validators may attach a stable connection profile with `accountId`, `displayName`, and
+known `grantedScopes`. This profile is safe to expose in `/api/connections`, MCP action discovery,
+agent guides, and recent run logs.
 
 ## Documentation
 

@@ -22,6 +22,6 @@ OOMOL_CONNECT_DATA_DIR="$PWD/data" \
 OOMOL_CONNECT_ENCRYPTION_KEY="replace-with-a-long-random-secret" \
 OOMOL_CONNECT_BACKUP_KEY="replace-with-another-long-random-secret" \
 OOMOL_CONNECT_API_TOKEN="replace-with-a-local-token" \
-OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_authenticated_user" \
+OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_current_user" \
 npm run dev
 ```

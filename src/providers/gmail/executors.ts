@@ -197,8 +197,14 @@ export const executors: ProviderExecutors = defineProviderExecutors<ActionContex
 });
 
 export const credentialValidators: CredentialValidators = {
-  async oauth2(input, { fetcher }): Promise<void> {
-    await getProfile("me", input.accessToken, fetcher);
+  async oauth2(input, { fetcher }) {
+    const profile = await getProfile("me", input.accessToken, fetcher);
+    return {
+      profile: {
+        accountId: profile.emailAddress,
+        displayName: profile.emailAddress,
+      },
+    };
   },
 };
 

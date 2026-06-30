@@ -88,6 +88,12 @@ const oauthProvider: ProviderDefinition = {
   actions: [],
 };
 
+const testProfile = {
+  accountId: "example-account",
+  displayName: "Example Account",
+  grantedScopes: [],
+};
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -103,6 +109,11 @@ describe("ConnectionService", () => {
         authType: "no_auth",
         configured: true,
         virtual: true,
+        profile: {
+          accountId: "hackernews:public",
+          displayName: "Hacker News Public",
+          grantedScopes: [],
+        },
       },
     ]);
   });
@@ -199,7 +210,14 @@ describe("ConnectionService", () => {
         if (input.apiKey !== "valid-key") {
           throw new Error("invalid key");
         }
-        return { metadata: { checked: true } };
+        return {
+          profile: {
+            accountId: "uptimerobot:user:1",
+            displayName: "Ops",
+            grantedScopes: ["read"],
+          },
+          metadata: { checked: true },
+        };
       },
     };
     const service = createService([apiKeyProvider], {
@@ -228,8 +246,55 @@ describe("ConnectionService", () => {
     await expect(service.getCredential("uptimerobot")).resolves.toMatchObject({
       authType: "api_key",
       apiKey: "valid-key",
+      profile: {
+        accountId: "uptimerobot:user:1",
+        displayName: "Ops",
+        grantedScopes: ["read"],
+      },
       metadata: { checked: true },
     });
+  });
+
+  it("exposes connection profiles to local users and agents", async () => {
+    const service = createService([apiKeyProvider], {
+      providerLoader: new FakeProviderLoader({
+        async apiKey() {
+          return {
+            profile: {
+              accountId: "ops@example.com",
+              displayName: "Ops",
+              grantedScopes: ["read", "write"],
+            },
+          };
+        },
+      }),
+    });
+
+    await expect(
+      service.connectWithApiKey("uptimerobot", {
+        values: {
+          apiKey: "valid-key",
+          accountId: "account-1",
+        },
+      }),
+    ).resolves.toMatchObject({
+      service: "uptimerobot",
+      profile: {
+        accountId: "ops@example.com",
+        displayName: "Ops",
+        grantedScopes: ["read", "write"],
+      },
+    });
+    await expect(service.listConnections()).resolves.toMatchObject([
+      {
+        service: "uptimerobot",
+        profile: {
+          accountId: "ops@example.com",
+          displayName: "Ops",
+          grantedScopes: ["read", "write"],
+        },
+      },
+    ]);
   });
 
   it("refreshes expired OAuth credentials before returning them", async () => {
@@ -250,6 +315,7 @@ describe("ConnectionService", () => {
       tokenType: "Bearer",
       refreshToken: "refresh-token",
       expiresAt: "2026-01-01T00:00:00.000Z",
+      profile: testProfile,
       metadata: { original: true },
     });
 
@@ -294,6 +360,7 @@ describe("ConnectionService", () => {
       accessToken: "expired-token",
       tokenType: "Bearer",
       expiresAt: "2026-01-01T00:00:00.000Z",
+      profile: testProfile,
       metadata: {},
     });
 
