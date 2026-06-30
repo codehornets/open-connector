@@ -107,11 +107,10 @@ describe("ConnectServer", () => {
       body: JSON.stringify({ authType: "api_key", values: { apiKey: "example-key" } }),
     });
 
-    const response = await app.request("/api/runs", {
+    const response = await app.request("/api/run/example.echo", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        actionId: "example.echo",
         input: {
           query: "hello",
           apiKey: "secret-key",
@@ -165,7 +164,7 @@ describe("ConnectServer", () => {
       body: JSON.stringify({ authType: "api_key", values: { apiKey: "example-key" } }),
     });
 
-    const response = await app.request("/api/action-guides/example.echo");
+    const response = await app.request("/api/example.echo.md");
 
     expect(response.status).toBe(200);
     const markdown = await response.text();
@@ -193,10 +192,10 @@ describe("ConnectServer", () => {
       },
     ).createApp();
 
-    const response = await app.request("/api/runs", {
+    const response = await app.request("/api/run/example.echo", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ actionId: "example.echo", input: {} }),
+      body: JSON.stringify({ input: {} }),
     });
 
     expect(response.status).toBe(400);

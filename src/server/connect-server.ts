@@ -81,8 +81,8 @@ export class ConnectServer {
 
     app.get("/api/actions", (context) => context.json(this.options.catalog.actions));
     app.get("/api/actions/:actionId", (context) => this.getAction(context, context.req.param("actionId")));
-    app.get("/api/action-guides/:actionId", (context) =>
-      this.getActionMarkdown(context, context.req.param("actionId")),
+    app.get("/api/:guideFile{.+\\.md}", (context) =>
+      this.getActionMarkdown(context, readMarkdownActionId(context.req.param("guideFile"))),
     );
 
     app.get("/api/connections", (context) => this.listConnections(context));
@@ -90,7 +90,7 @@ export class ConnectServer {
     app.delete("/api/connections/:service", (context) => this.disconnect(context, context.req.param("service")));
 
     app.get("/api/runs", (context) => context.json(this.options.actions.listRuns()));
-    app.post("/api/runs", (context) => this.createRun(context));
+    app.post("/api/run/:actionId", (context) => this.createRun(context, context.req.param("actionId")));
     app.get("/api/oauth/configs", (context) => this.listOAuthConfigs(context));
     app.put("/api/oauth/configs/:service", (context) => this.upsertOAuthConfig(context, context.req.param("service")));
     app.delete("/api/oauth/configs/:service", (context) =>
@@ -147,18 +147,13 @@ export class ConnectServer {
     );
   }
 
-  private async createRun(context: Context): Promise<Response> {
-    const body = await readJsonBody(context);
-    const actionId = optionalString(body.actionId);
-    if (!actionId) {
-      return jsonError(context, 400, "invalid_input", "actionId is required.");
-    }
-
+  private async createRun(context: Context, actionId: string): Promise<Response> {
     const action = this.options.catalog.actionsById.get(actionId);
     if (!action) {
       return notFound(context);
     }
 
+    const body = await readJsonBody(context);
     const result = await this.options.actions.run({
       actionId,
       input: body.input ?? {},
@@ -303,4 +298,8 @@ export class ConnectServer {
       throw error;
     }
   }
+}
+
+function readMarkdownActionId(filename: string): string {
+  return filename.endsWith(".md") ? filename.slice(0, -3) : filename;
 }

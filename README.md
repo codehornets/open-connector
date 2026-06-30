@@ -42,9 +42,9 @@ http://localhost:3000/docs
 Try a Hacker News action:
 
 ```bash
-curl -s http://localhost:3000/api/runs \
+curl -s http://localhost:3000/api/run/hackernews.get_top_stories \
   -H 'content-type: application/json' \
-  -d '{"actionId":"hackernews.get_top_stories","input":{}}'
+  -d '{"input":{}}'
 ```
 
 To serve the local web console from the same runtime, build it first:
@@ -129,7 +129,7 @@ The local server currently exposes:
 - `GET /api/apps/:service`
 - `GET /api/actions`
 - `GET /api/actions/:actionId`
-- `GET /api/action-guides/:actionId`
+- `GET /api/:actionId.md`
 - `GET /api/connections`
 - `PUT /api/connections/:service`
 - `DELETE /api/connections/:service`
@@ -139,7 +139,7 @@ The local server currently exposes:
 - `POST /api/oauth/authorizations`
 - `GET /oauth/callback/:service`
 - `GET /api/runs`
-- `POST /api/runs`
+- `POST /api/run/:actionId`
 - `POST /mcp`
 - `GET /mcp/tools`
 - `GET /openapi.json`

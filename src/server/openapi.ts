@@ -92,9 +92,9 @@ export function createOpenApiDocument(
 ): OpenApiDocument {
   const actions = providers.flatMap((provider) => provider.actions);
   const concreteAction = options.actionId ? actions.find((action) => action.id === options.actionId) : undefined;
-  const runsPath = createRunsPath();
+  const runPath = createRunPath();
   if (concreteAction) {
-    runsPath.post = createConcreteRunOperation(concreteAction);
+    runPath.post = createConcreteRunOperation(concreteAction);
   }
 
   const paths: Record<string, unknown> = {
@@ -113,7 +113,7 @@ export function createOpenApiDocument(
     "/api/actions/{actionId}": getOperation("Get one catalog action.", {
       $ref: "#/components/schemas/ActionDefinition",
     }),
-    "/api/action-guides/{actionId}": getOperation("Get one markdown action guide.", {
+    "/api/{actionId}.md": getOperation("Get one markdown action guide.", {
       type: "string",
       description: "Markdown guide for one action.",
     }),
@@ -128,7 +128,8 @@ export function createOpenApiDocument(
     }),
     "/api/oauth/configs/{service}": createOAuthConfigPath(),
     "/api/oauth/authorizations": createOAuthAuthorizationPath(),
-    "/api/runs": runsPath,
+    "/api/run/{actionId}": runPath,
+    "/api/runs": createRunsPath(),
     "/mcp": createMcpPath(),
     "/mcp/tools": getOperation("List discovery-oriented MCP tool summaries.", {
       type: "object",
@@ -263,21 +264,33 @@ function createRunsPath(): Record<string, unknown> {
         }),
       },
     },
+  };
+}
+
+function createRunPath(): Record<string, unknown> {
+  return {
     post: {
       summary: "Create a local action run.",
       description:
         "Use the action catalog to discover provider-specific input and output schemas. For a compact strongly typed OpenAPI document for one action, request /openapi.json?actionId=<actionId>.",
+      parameters: [
+        {
+          name: "actionId",
+          in: "path",
+          required: true,
+          schema: jsonSchema.string({ description: "Action id, usually <service>.<name>." }),
+        },
+      ],
       requestBody: {
         required: true,
         content: {
           "application/json": {
             schema: jsonSchema.object(
               {
-                actionId: jsonSchema.string({ description: "Action id, usually <service>.<name>." }),
                 input: jsonSchema.unknownObject("Action input matching the catalog schema."),
               },
               {
-                required: ["actionId", "input"],
+                required: ["input"],
                 description: "Generic action run creation request.",
               },
             ),
@@ -460,11 +473,10 @@ function createConcreteRunOperation(action: ActionDefinition): Record<string, un
         "application/json": {
           schema: jsonSchema.object(
             {
-              actionId: { const: action.id, type: "string" },
               input: action.inputSchema,
             },
             {
-              required: ["actionId", "input"],
+              required: ["input"],
               description: `Run creation request for ${action.id}.`,
             },
           ),

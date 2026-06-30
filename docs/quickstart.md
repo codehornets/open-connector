@@ -14,9 +14,9 @@ Open the API reference at `http://localhost:3000/docs`.
 Run a no-auth action:
 
 ```bash
-curl -s http://localhost:3000/api/runs \
+curl -s http://localhost:3000/api/run/hackernews.get_top_stories \
   -H 'content-type: application/json' \
-  -d '{"actionId":"hackernews.get_top_stories","input":{}}'
+  -d '{"input":{}}'
 ```
 
 List MCP tool metadata:
@@ -35,7 +35,7 @@ Get a compact action guide with required scopes, provider permissions, current c
 and HTTP execution examples:
 
 ```bash
-curl -s http://localhost:3000/api/action-guides/hackernews.get_top_stories
+curl -s http://localhost:3000/api/hackernews.get_top_stories.md
 ```
 
 The web console is served at `http://localhost:3000` after building the `web` workspace:
