@@ -2,7 +2,7 @@ import type { CredentialValidators, ProviderExecutors } from "../../core/types.t
 import type { ApiKeyProviderContext } from "../provider-runtime.ts";
 import type { HackerrankWorkActionName } from "./actions.ts";
 
-import { optionalIntegerLike, optionalRecord, optionalString, requiredString } from "../../core/cast.ts";
+import { optionalIntegerLike, optionalRecord, requiredString } from "../../core/cast.ts";
 import { defineApiKeyProviderExecutors, providerUserAgent, ProviderRequestError } from "../provider-runtime.ts";
 
 const service = "hackerrank_work";
