@@ -2,6 +2,7 @@ import type { CredentialValidationResult } from "../../core/types.ts";
 import type { RaygunActionName } from "./actions.ts";
 
 import { compactObject, optionalInteger, optionalString } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import { ProviderRequestError, providerUserAgent } from "../provider-runtime.ts";
 
 const asOptionalInteger = optionalInteger;
@@ -398,8 +399,4 @@ function parseLinkHeader(value: string | null) {
     links[trimmed.slice(relStart, relEnd)] = trimmed.slice(1, urlEnd);
   }
   return links;
-}
-
-function encodePathSegment(value: string) {
-  return encodeURIComponent(value);
 }

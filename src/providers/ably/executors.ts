@@ -2,6 +2,7 @@ import type { CredentialValidators, ExecutionContext, ProviderExecutors } from "
 import type { AblyActionName } from "./actions.ts";
 
 import { compactObject, optionalRecord, optionalString, requiredString } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import {
   defineProviderExecutors,
   providerUserAgent,
@@ -457,8 +458,4 @@ function requireObjectPayload(payload: unknown, context: string): Record<string,
 
 function requireNonEmptyString(value: unknown, fieldName: string): string {
   return requiredString(value, fieldName, (message) => new ProviderRequestError(400, message));
-}
-
-function encodePathSegment(value: string): string {
-  return encodeURIComponent(value);
 }

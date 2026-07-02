@@ -1,6 +1,10 @@
 import type { OAuth2AuthDefinition, ResolvedCredential } from "../core/types.ts";
 
 import { optionalString, requiredString } from "../core/cast.ts";
+import { readBoundedResponseBytes } from "../core/request.ts";
+
+const oauthTokenRequestTimeoutMs = 30_000;
+const oauthTokenResponseMaxBytes = 1024 * 1024;
 
 export interface OAuthTokenRequestOptions {
   clientId: string;
@@ -79,12 +83,22 @@ async function requestToken(input: TokenRequest): Promise<Extract<ResolvedCreden
     body = new URLSearchParams(fields);
   }
 
-  const response = await fetch(input.tokenUrl, {
-    method: "POST",
-    headers,
-    body,
-  });
-  const rawPayload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  let response: Response;
+  try {
+    response = await fetch(input.tokenUrl, {
+      method: "POST",
+      headers,
+      body,
+      signal: AbortSignal.timeout(oauthTokenRequestTimeoutMs),
+    });
+  } catch (error) {
+    throw input.createError(
+      error instanceof Error && error.name === "TimeoutError"
+        ? "OAuth token request timed out."
+        : "OAuth token request failed.",
+    );
+  }
+  const rawPayload = await readTokenPayload(response, input.createError);
   const payload = unwrapTokenPayload(rawPayload, input.responseEnvelope);
   if (!response.ok || !isEnvelopeSuccess(rawPayload, input.responseEnvelope)) {
     throw input.createError(
@@ -108,6 +122,29 @@ async function requestToken(input: TokenRequest): Promise<Extract<ResolvedCreden
     },
     metadata: createTokenMetadata(payload),
   };
+}
+
+async function readTokenPayload(
+  response: Response,
+  createError: OAuthTokenErrorFactory,
+): Promise<Record<string, unknown>> {
+  const bytes = await readBoundedResponseBytes(response, {
+    maxBytes: oauthTokenResponseMaxBytes,
+    fieldName: "OAuth token response",
+    createError,
+  });
+  if (bytes.byteLength === 0) {
+    return {};
+  }
+
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return typeof payload === "object" && payload != null && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
 }
 
 function createTokenMetadata(payload: Record<string, unknown>): Record<string, unknown> {

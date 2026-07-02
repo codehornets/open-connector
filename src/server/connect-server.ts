@@ -22,7 +22,7 @@ import { OAuthFlowError, OAuthFlowService } from "../oauth/oauth-flow-service.ts
 import { ActionRunner } from "./actions/action-runner.ts";
 import { renderActionMarkdown } from "./api/action-markdown.ts";
 import { createLocalAuthMiddleware, installLocalAuthCookie } from "./api/auth.ts";
-import { escapeHtml, internalError, jsonError, notFound, readJsonBody } from "./api/http-utils.ts";
+import { escapeHtml, HttpRequestError, internalError, jsonError, notFound, readJsonBody } from "./api/http-utils.ts";
 import { createOpenApiDocument } from "./api/openapi.ts";
 import {
   mapConnectionErrorStatus,
@@ -157,6 +157,9 @@ export class ConnectServer {
     });
     this.options.registerStaticRoutes?.(app);
     app.onError((error, context) => {
+      if (error instanceof HttpRequestError) {
+        return jsonError(context, 400, error.code, error.message);
+      }
       this.options.logger?.error(
         {
           err: error,
@@ -556,20 +559,25 @@ export class ConnectServer {
     return this.writeOAuthResult(context, this.options.oauthClientConfigs.deleteConfig(service));
   }
 
-  private async completeOAuth(context: Context, service: string): Promise<Response> {
+  private async completeOAuth(context: Context, _service: string): Promise<Response> {
     const state = context.req.query("state");
     const code = context.req.query("code");
     if (!state || !code) {
       return jsonError(context, 400, "invalid_oauth_callback", "OAuth callback requires state and code.");
     }
 
-    const result = await this.writeOAuthResult(context, this.options.oauthFlow.completeAuthorization({ state, code }));
-    if (result.status >= 400) {
-      return result;
+    let result: { service: string; connected: true };
+    try {
+      result = await this.options.oauthFlow.completeAuthorization({ state, code });
+    } catch (error) {
+      if (error instanceof OAuthFlowError) {
+        return jsonError(context, 400, error.code, error.message);
+      }
+      throw error;
     }
 
     return context.html(
-      `<html><body><h1>Connected ${escapeHtml(service)}</h1><p>You can close this window and return to OOMOL Connect.</p></body></html>`,
+      `<html><body><h1>Connected ${escapeHtml(result.service)}</h1><p>You can close this window and return to OOMOL Connect.</p></body></html>`,
     );
   }
 
@@ -591,6 +599,9 @@ export class ConnectServer {
     } catch (error) {
       if (error instanceof OAuthClientConfigError || error instanceof OAuthFlowError) {
         return jsonError(context, error.code === "unknown_service" ? 404 : 400, error.code, error.message);
+      }
+      if (error instanceof HttpRequestError) {
+        return jsonError(context, 400, error.code, error.message);
       }
 
       throw error;

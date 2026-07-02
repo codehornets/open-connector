@@ -3,6 +3,7 @@ import type { ApiKeyProviderContext } from "../provider-runtime.ts";
 import type { QianfanActionName } from "./actions.ts";
 
 import { compactObject, requiredString } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import {
   defineApiKeyProviderExecutors,
   providerUserAgent,
@@ -596,10 +597,6 @@ function requireStringField(input: Record<string, unknown>, field: string) {
   }
 
   throw qianfanError("invalid_input", `${field} must be a non-empty string`, 400);
-}
-
-function encodePathSegment(value: string) {
-  return encodeURIComponent(value);
 }
 
 function withQianfanQuery(path: string, query: Record<string, unknown>) {

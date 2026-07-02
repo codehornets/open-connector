@@ -8,6 +8,7 @@ import type {
 } from "../core/types.ts";
 
 import { CastError, optionalRecord, optionalString, requiredString } from "../core/cast.ts";
+import { readBoundedResponseBytes } from "../core/request.ts";
 
 /**
  * Fetch-compatible function accepted by provider runtime helpers and tests.
@@ -198,9 +199,12 @@ export async function uploadProviderUrlToTransitFile(
   }
 
   const mimeType = response.headers.get("content-type") ?? "application/octet-stream";
-  const upload = await context.transitFiles.create(
-    new File([await response.arrayBuffer()], input.name, { type: mimeType }),
-  );
+  const bytes = await readBoundedResponseBytes(response, {
+    maxBytes: context.transitFiles.maxBytes,
+    fieldName: input.name,
+    createError: (message) => new ProviderRequestError(413, message),
+  });
+  const upload = await context.transitFiles.create(new File([Uint8Array.from(bytes)], input.name, { type: mimeType }));
   return {
     fileId: upload.fileId,
     downloadUrl: upload.downloadUrl,

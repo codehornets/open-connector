@@ -9,6 +9,7 @@ import type { WeaviateActionName } from "./actions.ts";
 
 import { optionalInteger, optionalNumber, optionalRecord, optionalString, requiredString } from "../../core/cast.ts";
 import { compactObject } from "../../core/cast.ts";
+import { assertPublicHttpUrl } from "../../core/request.ts";
 import {
   defineProviderExecutors,
   ProviderRequestError,
@@ -292,15 +293,15 @@ function normalizeWeaviateBaseUrl(rawBaseUrl: unknown): string {
     throw new ProviderRequestError(400, "baseUrl is required");
   }
 
-  let url: URL;
-  try {
-    url = new URL(text);
-  } catch {
-    throw new ProviderRequestError(400, "baseUrl must be a valid URL");
+  const url = assertPublicHttpUrl(text, {
+    fieldName: "baseUrl",
+    createError: (message) => new ProviderRequestError(400, message),
+  });
+  if (url.protocol !== "https:") {
+    throw new ProviderRequestError(400, "baseUrl must use https");
   }
-
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new ProviderRequestError(400, "baseUrl must use http or https");
+  if (url.username || url.password) {
+    throw new ProviderRequestError(400, "baseUrl must not include credentials");
   }
 
   return url.toString().replace(/\/+$/u, "");

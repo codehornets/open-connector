@@ -15,9 +15,9 @@ export type JsonRequestBody = {
 /**
  * Read an optional JSON object request body.
  *
- * Empty bodies, non-JSON requests, and malformed JSON currently resolve to an
- * empty object because connection and execution services perform their own
- * field-level validation.
+ * Empty bodies and non-JSON requests resolve to an empty object. Malformed
+ * JSON is rejected before route handlers can accidentally execute actions with
+ * a damaged request body.
  */
 export async function readJsonBody(context: Context): Promise<JsonRequestBody> {
   const contentType = context.req.header("content-type") ?? "";
@@ -25,7 +25,11 @@ export async function readJsonBody(context: Context): Promise<JsonRequestBody> {
     return {};
   }
 
-  return (await context.req.json().catch(() => ({}))) as JsonRequestBody;
+  try {
+    return (await context.req.json()) as JsonRequestBody;
+  } catch {
+    throw new HttpRequestError("invalid_json", "Request body must be valid JSON.");
+  }
 }
 
 /**
@@ -58,8 +62,8 @@ export function notFound(context: Context): Response {
 /**
  * Write an unexpected server error without exposing stack traces.
  */
-export function internalError(context: Context, error: unknown): Response {
-  return jsonError(context, 500, "internal_error", error instanceof Error ? error.message : "Unknown error.");
+export function internalError(context: Context, _error: unknown): Response {
+  return jsonError(context, 500, "internal_error", "Internal server error.");
 }
 
 /**
@@ -67,4 +71,13 @@ export function internalError(context: Context, error: unknown): Response {
  */
 export function escapeHtml(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+export class HttpRequestError extends Error {
+  readonly code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+  }
 }

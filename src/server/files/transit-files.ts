@@ -2,9 +2,10 @@ import type { ITransitFileService, TransitFileRead, TransitFileUpload } from "./
 
 import { randomBytes } from "node:crypto";
 import { once } from "node:events";
-import { createWriteStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
+import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import { contentTypeFromFileId, TransitFileError } from "./transit-file-store.ts";
 
@@ -24,7 +25,7 @@ export class TransitFileService implements ITransitFileService {
   private readonly rootDir: string;
   private readonly publicOrigin: string;
   private readonly ttlMs: number;
-  private readonly maxBytes: number;
+  readonly maxBytes: number;
 
   constructor(options: TransitFileOptions) {
     this.rootDir = options.rootDir;
@@ -77,6 +78,28 @@ export class TransitFileService implements ITransitFileService {
       name: metadata.name,
       mimeType: metadata.mimeType,
     };
+  }
+
+  async response(fileId: string): Promise<Response> {
+    assertSafeFileId(fileId);
+    const path = join(this.rootDir, fileId);
+    const stats = await stat(path).catch(() => undefined);
+    if (!stats?.isFile()) {
+      throw new TransitFileError(404, "file_not_found", "Transit file was not found.");
+    }
+    if (Date.now() - stats.mtimeMs > this.ttlMs) {
+      await unlink(path).catch(() => undefined);
+      throw new TransitFileError(404, "file_not_found", "Transit file was not found.");
+    }
+
+    const metadata = await this.readMetadata(path, fileId);
+    return new Response(Readable.toWeb(createReadStream(path)) as ReadableStream, {
+      headers: {
+        "content-length": String(stats.size),
+        "content-type": metadata.mimeType,
+        "content-disposition": `attachment; filename="${escapeHeaderValue(metadata.name)}"`,
+      },
+    });
   }
 
   async delete(fileId: string): Promise<boolean> {
@@ -194,4 +217,8 @@ function normalizeMetadata(
   const mimeType =
     typeof input.mimeType === "string" && input.mimeType.trim() ? input.mimeType.trim() : fallback.mimeType;
   return { name, mimeType };
+}
+
+function escapeHeaderValue(value: string): string {
+  return value.replace(/["\\\r\n]/g, "_");
 }

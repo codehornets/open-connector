@@ -1,26 +1,27 @@
 import type { ProviderDefinition } from "../src/core/types.ts";
 
-import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { sortProviders } from "../src/core/catalog.ts";
 
 const outputDir = join(process.cwd(), "catalog/apps");
+const catalogRootDir = join(process.cwd(), "catalog");
+const tempOutputDir = join(catalogRootDir, `.apps-${process.pid}-${Date.now()}`);
 const providers = await loadProviderDefinitions();
 const apps = sortProviders(providers);
 
-await mkdir(outputDir, { recursive: true });
+await mkdir(catalogRootDir, { recursive: true });
 
-const appFileNames = new Set(apps.map((app) => `${app.service}.json`));
-const existingEntries = await readdir(outputDir, { withFileTypes: true });
-
-await Promise.all(
-  existingEntries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".json") && !appFileNames.has(entry.name))
-    .map((entry) => rm(join(outputDir, entry.name))),
-);
-
-for (const app of apps) {
-  await writeFile(join(outputDir, `${app.service}.json`), `${JSON.stringify(app, null, 2)}\n`);
+try {
+  await mkdir(tempOutputDir, { recursive: true });
+  for (const app of apps) {
+    await writeFile(join(tempOutputDir, `${app.service}.json`), `${JSON.stringify(app, null, 2)}\n`);
+  }
+  await rm(outputDir, { recursive: true, force: true });
+  await rename(tempOutputDir, outputDir);
+} catch (error) {
+  await rm(tempOutputDir, { recursive: true, force: true });
+  throw error;
 }
 
 console.log(`Generated ${apps.length} apps and ${apps.reduce((sum, app) => sum + app.actions.length, 0)} actions.`);

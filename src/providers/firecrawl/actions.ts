@@ -689,8 +689,7 @@ export const firecrawlActions: ActionDefinition[] = [
   }),
   defineProviderAction(service, {
     name: "map_multiple_urls_based_on_options",
-    description:
-      "Discover URLs from a website with Firecrawl's map endpoint using the Composio-compatible action name.",
+    description: "Discover URLs from a website with Firecrawl's map endpoint using the legacy map action name.",
     inputSchema: s.looseRequiredObject(
       "The input payload for this action.",
       {

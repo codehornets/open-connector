@@ -4,7 +4,7 @@ import type { OpenAiActionName } from "./actions.ts";
 
 import { Buffer } from "node:buffer";
 import { compactObject, optionalRecord, optionalString } from "../../core/cast.ts";
-import { assertPublicHttpUrl, readBoundedResponseBytes } from "../../core/request.ts";
+import { assertPublicHttpUrl, encodePathSegment, readBoundedResponseBytes } from "../../core/request.ts";
 import {
   createProviderTimeout,
   defineApiKeyProviderExecutors,
@@ -456,10 +456,6 @@ function requireStringField(input: Record<string, unknown>, fieldName: string): 
     throw new ProviderRequestError(400, `${fieldName} is required`);
   }
   return value;
-}
-
-function encodePathSegment(value: string): string {
-  return encodeURIComponent(value);
 }
 
 function withOpenAiQuery(path: string, query: Record<string, unknown>): string {

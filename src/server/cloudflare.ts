@@ -7,7 +7,7 @@ import { loadCatalog } from "../catalog-store.ts";
 import { ActionPolicyService, parseActionPolicyList } from "../core/action-policy.ts";
 import { ProviderLoader } from "../providers/provider-loader.ts";
 import { executableActionIds } from "../providers/registry.generated.ts";
-import { resolvePublicOrigin, readNumber } from "./cloudflare/cloudflare-env.ts";
+import { readPositiveInteger, resolvePublicOrigin } from "./cloudflare/cloudflare-env.ts";
 import { createConnectApp } from "./connect-app.ts";
 import { R2TransitFileService } from "./files/r2-transit-files.ts";
 import { createWorkerSecretCodec } from "./secrets/worker-secret-codec.ts";
@@ -49,8 +49,8 @@ async function createCloudflareApp(env: CloudflareEnv, publicOrigin: string): Pr
     transitFiles: new R2TransitFileService({
       bucket: env.TRANSIT_FILES,
       publicOrigin,
-      ttlSeconds: readNumber(env.OOMOL_CONNECT_TRANSIT_FILE_TTL_SECONDS, 86_400),
-      maxBytes: readNumber(env.OOMOL_CONNECT_TRANSIT_FILE_MAX_BYTES, 100 * 1024 * 1024),
+      ttlSeconds: readPositiveInteger(env.OOMOL_CONNECT_TRANSIT_FILE_TTL_SECONDS, 86_400),
+      maxBytes: readPositiveInteger(env.OOMOL_CONNECT_TRANSIT_FILE_MAX_BYTES, 100 * 1024 * 1024),
     }),
     publicOrigin,
     secretCodec,

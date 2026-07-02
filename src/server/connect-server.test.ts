@@ -102,6 +102,64 @@ describe("ConnectServer", () => {
     });
   });
 
+  it("rejects malformed JSON request bodies", async () => {
+    const app = createTestServer([
+      {
+        ...apiKeyProvider,
+        actions: [echoAction],
+      },
+    ]).createApp();
+
+    const connection = await app.request("/api/connections/example", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: "{",
+    });
+    expect(connection.status).toBe(400);
+    await expect(connection.json()).resolves.toEqual({
+      error: {
+        code: "invalid_json",
+        message: "Request body must be valid JSON.",
+      },
+    });
+
+    const action = await app.request("/v1/actions/example.echo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{",
+    });
+    expect(action.status).toBe(400);
+    await expect(action.json()).resolves.toEqual({
+      error: {
+        code: "invalid_json",
+        message: "Request body must be valid JSON.",
+      },
+    });
+  });
+
+  it("does not expose internal error messages to HTTP callers", async () => {
+    const app = createTestServer([
+      {
+        ...apiKeyProvider,
+        actions: [echoAction],
+      },
+    ]).createApp();
+
+    const response = await app.request("/v1/actions/example.echo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: {} }),
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "internal_error",
+        message: "Internal server error.",
+      },
+    });
+  });
+
   it("requires local bearer tokens when configured", async () => {
     const app = createTestServer([apiKeyProvider], {
       auth: { adminToken: "local-token", runtimeToken: "runtime-token" },

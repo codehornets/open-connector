@@ -9,6 +9,7 @@ import {
   optionalString,
   requiredString,
 } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import {
   defineProviderExecutors,
   providerUserAgent,
@@ -463,8 +464,4 @@ function setQueryValue(query: URLSearchParams, key: string, value: string | unde
   if (value !== undefined) {
     query.set(key, value);
   }
-}
-
-function encodePathSegment(value: string): string {
-  return encodeURIComponent(value);
 }

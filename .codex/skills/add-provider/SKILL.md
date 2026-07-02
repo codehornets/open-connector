@@ -85,11 +85,7 @@ export const provider: ProviderDefinition = {
 
 Create `src/providers/<service>/executors.ts`.
 
-For catalog-only providers, export an empty object:
-
-```ts
-export const executors = {};
-```
+Do not add catalog-only provider placeholders. Add the provider when it has a runnable local executor.
 
 For runnable providers:
 
@@ -129,7 +125,7 @@ npm run fix-check
 
 ```bash
 npm run dev
-curl -s 'http://localhost:3000/api/actions/<service>.<actionId>/execute' \
+curl -s 'http://localhost:3000/api/actions/<service>.<actionName>/runs' \
   -H 'content-type: application/json' \
   -d '{"input":{}}'
 ```

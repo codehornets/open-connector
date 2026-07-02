@@ -22,7 +22,7 @@ export class R2TransitFileService implements ITransitFileService {
   private readonly bucket: R2BucketBinding;
   private readonly publicOrigin: string;
   private readonly ttlMs: number;
-  private readonly maxBytes: number;
+  readonly maxBytes: number;
 
   constructor(options: R2TransitFileOptions) {
     this.bucket = options.bucket;
@@ -41,7 +41,7 @@ export class R2TransitFileService implements ITransitFileService {
       sizeBytes: file.size,
     });
 
-    await this.bucket.put(objectKey(fileId), await file.arrayBuffer(), {
+    await this.bucket.put(objectKey(fileId), file.stream(), {
       httpMetadata: { contentType: metadata.mimeType },
     });
     await this.bucket.put(metadataKey(fileId), JSON.stringify(metadata));

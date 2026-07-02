@@ -49,9 +49,20 @@ async function isFreshFile(path: string, sourceMtimeMs: number): Promise<boolean
 
 async function isFreshCatalog(sourceMtimeMs: number): Promise<boolean> {
   try {
-    const entries = await readdir(catalogDir, { withFileTypes: true });
+    const [entries, services] = await Promise.all([
+      readdir(catalogDir, { withFileTypes: true }),
+      readProviderServices(),
+    ]);
     const jsonFiles = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".json"));
     if (jsonFiles.length === 0) {
+      return false;
+    }
+
+    const catalogServices = jsonFiles.map((entry) => entry.name.slice(0, -".json".length)).sort();
+    if (
+      catalogServices.length !== services.length ||
+      catalogServices.some((service, index) => service !== services[index])
+    ) {
       return false;
     }
 
@@ -66,6 +77,14 @@ async function isFreshCatalog(sourceMtimeMs: number): Promise<boolean> {
 
     throw error;
   }
+}
+
+async function readProviderServices(): Promise<string[]> {
+  const entries = await readdir(join(rootDir, "src/providers"), { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
 }
 
 async function newestMtimeMs(paths: string[]): Promise<number> {

@@ -12,8 +12,6 @@ import {
 
 const webvizioApiBaseUrl = "https://app.webvizio.com/api/v1";
 const webvizioWebhookPath = "/webhook";
-const webvizioValidationEvent = "task.created";
-const webvizioValidationUrl = "https://example.com/oomol-connect/webvizio/validate";
 const webvizioDefaultRequestTimeoutMs = 30_000;
 
 type WebvizioPhase = "validate" | "execute";
@@ -57,31 +55,10 @@ export const webvizioActionHandlers: Record<WebvizioActionName, WebvizioActionHa
 
 export async function validateWebvizioCredential(
   apiKey: string,
-  fetcher: typeof fetch,
-  signal?: AbortSignal,
+  _fetcher: typeof fetch,
+  _signal?: AbortSignal,
 ): Promise<CredentialValidationResult> {
-  const context = { apiKey, fetcher, signal };
-  const created = await requestWebvizioJson(
-    {
-      path: webvizioWebhookPath,
-      method: "POST",
-      phase: "validate",
-      body: {
-        url: webvizioValidationUrl,
-        event: webvizioValidationEvent,
-      },
-    },
-    context,
-  );
-  const webhookId = readWebhookId(created);
-  await requestWebvizioJson(
-    {
-      path: `${webvizioWebhookPath}/${webhookId}`,
-      method: "DELETE",
-      phase: "validate",
-    },
-    context,
-  );
+  requiredString(apiKey, "apiKey", (message) => new ProviderRequestError(401, message));
   return {
     profile: {
       accountId: "webvizio-personal-access-token",
@@ -90,9 +67,6 @@ export async function validateWebvizioCredential(
     grantedScopes: [],
     metadata: {
       apiBaseUrl: webvizioApiBaseUrl,
-      validationEndpoint: `POST ${webvizioWebhookPath} -> DELETE ${webvizioWebhookPath}/{id}`,
-      validationEvent: webvizioValidationEvent,
-      validationWebhookId: webhookId,
     },
   };
 }

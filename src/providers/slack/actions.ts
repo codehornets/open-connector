@@ -2,11 +2,9 @@ import type { ActionDefinition, JsonSchema } from "../../core/types.ts";
 
 import { s } from "../../core/json-schema.ts";
 import { defineProviderAction } from "../../core/provider-definition.ts";
+import { slackConversationTypes, slackNormalizedConversationTypes } from "./constants.ts";
 
 const service = "slack";
-
-const conversationTypes = ["public_channel", "private_channel", "im", "mpim"];
-const normalizedConversationTypes = [...conversationTypes, "unknown"];
 
 const nonEmptyString = (description: string): JsonSchema => s.nonEmptyString(description);
 const channelIdSchema = nonEmptyString("The Slack conversation or channel ID.");
@@ -14,7 +12,7 @@ const messageTsSchema = nonEmptyString("The Slack message timestamp, for example
 const userIdSchema = nonEmptyString("The Slack user ID.");
 const fileIdSchema = nonEmptyString("The Slack file ID.");
 
-const conversationTypeSchema = s.stringEnum(conversationTypes, {
+const conversationTypeSchema = s.stringEnum([...slackConversationTypes], {
   description: "A Slack conversation type.",
 });
 
@@ -56,7 +54,9 @@ const conversationSchema = s.object(
   {
     channelId: s.string({ description: "The unique identifier of the conversation." }),
     name: s.nullable(s.string({ description: "The name of the conversation when available." })),
-    type: s.stringEnum(normalizedConversationTypes, { description: "The normalized Slack conversation type." }),
+    type: s.stringEnum([...slackNormalizedConversationTypes], {
+      description: "The normalized Slack conversation type.",
+    }),
     isArchived: s.nullable(s.boolean({ description: "Whether the conversation is archived." })),
     isPrivate: s.nullable(s.boolean({ description: "Whether the conversation is private." })),
     isMember: s.nullable(s.boolean({ description: "Whether the bot user is a member." })),

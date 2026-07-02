@@ -6,7 +6,7 @@ import { defineProviderAction } from "../../core/provider-definition.ts";
 const service = "asin_data_api";
 
 const actionResultSchema = s.object(
-  "The Composio-compatible ASIN Data API action result.",
+  "The ASIN Data API action result.",
   {
     data: s.looseObject("The ASIN Data API response payload returned by the action."),
     error: s.string("Error if any occurred during the action execution."),

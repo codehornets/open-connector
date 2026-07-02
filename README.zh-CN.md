@@ -22,8 +22,6 @@ OOMOL Connect。
 - 最近运行记录，包含脱敏后的输入摘要和 provider 错误。
 - provider catalog 和本地 executor；executor 只在 action 被使用时才加载。
 
-当前 catalog 包含 8 个 provider 和 201 个本地可执行 action。
-
 ## 快速开始
 
 最快的试用方式是 Docker Compose：
@@ -441,9 +439,7 @@ docs/                       用户和贡献者文档
 
 Provider 代码位于 `src/providers/<service>`。
 
-使用 provider 贡献 skill：
-
-[.codex/skills/add-provider/SKILL.md](.codex/skills/add-provider/SKILL.md)
+请查看 [CONTRIBUTING.md](CONTRIBUTING.md#adding-providers) 中的 provider 贡献规则。
 
 常见 provider 工作流：
 

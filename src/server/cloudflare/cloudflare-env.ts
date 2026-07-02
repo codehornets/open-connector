@@ -18,7 +18,7 @@ export function resolvePublicOrigin(request: Request, env: CloudflareEnv): strin
   return (env.OOMOL_CONNECT_ORIGIN ?? new URL(request.url).origin).replace(/\/+$/, "");
 }
 
-export function readNumber(value: string | undefined, fallback: number): number {
+export function readPositiveInteger(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }

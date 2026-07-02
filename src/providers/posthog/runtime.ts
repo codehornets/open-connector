@@ -1,6 +1,7 @@
 import type { CredentialValidationResult } from "../../core/types.ts";
 
 import { compactObject, optionalString } from "../../core/cast.ts";
+import { assertPublicHttpUrl } from "../../core/request.ts";
 import { ProviderRequestError, providerUserAgent } from "../provider-runtime.ts";
 
 const posthogUserAgent = providerUserAgent;
@@ -1520,19 +1521,20 @@ function mapPosthogError(input: {
 }
 
 function normalizePosthogBaseUrl(value: string | undefined) {
-  if (!value?.trim()) {
+  const baseUrl = optionalString(value);
+  if (!baseUrl) {
     throw new ProviderRequestError(400, "Base URL is required");
   }
 
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new ProviderRequestError(400, "Base URL must be a valid absolute URL");
+  const parsed = assertPublicHttpUrl(baseUrl, {
+    fieldName: "Base URL",
+    createError: (message) => new ProviderRequestError(400, message),
+  });
+  if (parsed.protocol !== "https:") {
+    throw new ProviderRequestError(400, "Base URL must use https");
   }
-
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new ProviderRequestError(400, "Base URL must use http or https");
+  if (parsed.username || parsed.password) {
+    throw new ProviderRequestError(400, "Base URL must not include credentials");
   }
 
   let normalizedPath = parsed.pathname;

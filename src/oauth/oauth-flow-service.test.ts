@@ -273,6 +273,27 @@ describe("OAuthFlowService", () => {
     await expect(services.connections.getCredential("example")).resolves.toBeUndefined();
   });
 
+  it("rejects oversized OAuth token responses", async () => {
+    const services = createServices([oauthProvider]);
+    await services.clientConfigs.upsertConfig({
+      service: "example",
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      extra: {
+        tenant: "default",
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("x".repeat(1024 * 1024 + 1))),
+    );
+
+    const started = await services.flow.startAuthorization({ service: "example" });
+    await expect(services.flow.completeAuthorization({ state: started.state, code: "code" })).rejects.toThrow(
+      "OAuth token response exceeds 1048576 bytes",
+    );
+  });
+
   it("stores secret OAuth client config fields in completed credential metadata", async () => {
     const services = createServices([pkceOAuthProvider]);
     await services.clientConfigs.upsertConfig({

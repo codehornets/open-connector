@@ -23,8 +23,6 @@ credentials, permissions, and execution history.
 - Recent run logs with redacted input summaries and provider errors.
 - A provider catalog with local executors that load only when an action is used.
 
-The current catalog includes 8 providers and 201 locally executable actions.
-
 ## Quick Start
 
 The fastest way to try OOMOL Connect is Docker Compose:
@@ -452,9 +450,7 @@ docs/                       User and contributor documentation
 
 Provider code lives under `src/providers/<service>`.
 
-Use the provider contribution skill:
-
-[.codex/skills/add-provider/SKILL.md](.codex/skills/add-provider/SKILL.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md#adding-providers) for provider contribution rules.
 
 Typical provider workflow:
 

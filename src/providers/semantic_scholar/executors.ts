@@ -2,6 +2,7 @@ import type { CredentialValidators, ExecutionContext, ProviderExecutors } from "
 import type { SemanticScholarActionName } from "./actions.ts";
 
 import { compactObject, optionalRawString, optionalRecord } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import {
   createProviderTimeout,
   defineProviderExecutors,
@@ -567,10 +568,6 @@ function readStringList(value: unknown) {
   }
 
   return value.map((item) => readRequiredString(item, "id"));
-}
-
-function encodePathSegment(value: string) {
-  return encodeURIComponent(value);
 }
 
 function isAbortLikeError(error: unknown) {

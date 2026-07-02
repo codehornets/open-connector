@@ -1,6 +1,7 @@
 import type { CredentialValidators, ProviderExecutors } from "../../core/types.ts";
 import type { OAuthProviderContext } from "../provider-runtime.ts";
 import type { SlackActionName } from "./actions.ts";
+import type { SlackNormalizedConversationType } from "./constants.ts";
 
 import { compactObject, optionalBoolean, optionalRecord, optionalString, requiredString } from "../../core/cast.ts";
 import { assertPublicHttpUrl, readBoundedResponseBytes } from "../../core/request.ts";
@@ -11,10 +12,10 @@ import {
   ProviderRequestError,
   providerUserAgent,
 } from "../provider-runtime.ts";
+import { slackConversationTypes } from "./constants.ts";
 
 const service = "slack";
 const slackApiBaseUrl = "https://slack.com/api";
-const defaultConversationTypes = ["public_channel", "private_channel", "im", "mpim"];
 const slackFileUrlMaxBytes = 100 * 1024 * 1024;
 const slackFileUrlFetchTimeoutMs = 30_000;
 
@@ -236,9 +237,7 @@ async function slackListConversations(input: Record<string, unknown>, context: S
   url.searchParams.set("limit", String(input.limit ?? 200));
   url.searchParams.set(
     "types",
-    Array.isArray(input.types)
-      ? input.types.map((value) => String(value)).join(",")
-      : defaultConversationTypes.join(","),
+    Array.isArray(input.types) ? input.types.map((value) => String(value)).join(",") : slackConversationTypes.join(","),
   );
   if (input.cursor != null) {
     url.searchParams.set("cursor", String(input.cursor));
@@ -753,9 +752,7 @@ function normalizeScheduledPostAt(value: number | string | undefined, fallback: 
   return postAt;
 }
 
-function normalizeConversationType(
-  conversation: Record<string, unknown>,
-): "public_channel" | "private_channel" | "im" | "mpim" | "unknown" {
+function normalizeConversationType(conversation: Record<string, unknown>): SlackNormalizedConversationType {
   if (conversation.is_im === true) {
     return "im";
   }

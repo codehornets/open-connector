@@ -276,6 +276,7 @@ export interface TransitFileRead {
 }
 
 export interface TransitFileStore {
+  readonly maxBytes: number;
   create(file: File): Promise<{
     fileId: string;
     downloadUrl: string;

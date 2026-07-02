@@ -14,6 +14,7 @@ export interface TransitFileRead {
 }
 
 export interface ITransitFileService {
+  readonly maxBytes: number;
   create(file: File): Promise<TransitFileUpload>;
   read(fileId: string): Promise<TransitFileRead>;
   response?(fileId: string): Promise<Response>;

@@ -17,7 +17,7 @@
     "deploy:cloudflare": "npm run generate:catalog && npm run build:web && wrangler deploy --config wrangler.local.jsonc",
     "start": "node scripts/ensure-generated.ts && node src/server/index.ts",
     "test": "vitest run",
-    "typecheck": "npm run generate:registry && node scripts/typecheck.ts src",
+    "typecheck": "npm run generate:registry && node scripts/typecheck.ts src scripts-all examples",
     "generate:registry": "node scripts/generate-provider-registry.ts",
     "generate:catalog": "npm run generate:registry && node scripts/generate-catalog.ts",
     "search:actions": "node scripts/ensure-generated.ts && node scripts/search-actions.ts",

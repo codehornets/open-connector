@@ -3,6 +3,7 @@ import type { ApiKeyProviderContext } from "../provider-runtime.ts";
 import type { IntelliprintActionName } from "./actions.ts";
 
 import { compactObject, optionalBoolean, optionalInteger, optionalRecord, optionalString } from "../../core/cast.ts";
+import { encodePathSegment } from "../../core/request.ts";
 import { defineApiKeyProviderExecutors, providerUserAgent, ProviderRequestError } from "../provider-runtime.ts";
 
 const service = "intelliprint";
@@ -304,10 +305,6 @@ function readRequiredString(value: unknown, fieldName: string): string {
   }
 
   return text;
-}
-
-function encodePathSegment(value: string): string {
-  return encodeURIComponent(value);
 }
 
 function readObject(value: unknown, message = "object response is required"): Record<string, unknown> {

@@ -15,7 +15,7 @@ export const provider: ProviderDefinition = {
       label: "Personal Access Token",
       placeholder: "WEBVIZIO_API_TOKEN",
       description:
-        "Webvizio personal access token used with the Authorization: Bearer header. Generate a unique API key token from the official Webvizio Zapier connection popup as described here: https://webvizio.com/help-center/zapier-integration/",
+        "Webvizio personal access token used with the Authorization: Bearer header for the Webvizio REST Hook API.",
       extraFields: [],
     },
   ],
