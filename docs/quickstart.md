@@ -132,14 +132,15 @@ Create the Cloudflare resources, apply the D1 schema, and start a local Worker p
 cp wrangler.example.jsonc wrangler.local.jsonc
 npm run generate:catalog
 npm run build:web
-npx wrangler d1 create oomol-connect
-npx wrangler r2 bucket create oomol-connect-transit-files
-npx wrangler d1 migrations apply oomol-connect --local
+npx wrangler d1 create open-connector
+npx wrangler r2 bucket create open-connector-transit-files
+npx wrangler d1 migrations apply open-connector --local --config wrangler.local.jsonc
 npm run dev:cloudflare
 ```
 
 For remote deploys, put the returned D1 `database_id` in ignored `wrangler.local.jsonc`, run the
-migration with `--remote`, set secrets with `wrangler secret put`, then run:
+migration with `--remote --config wrangler.local.jsonc`, set secrets with
+`wrangler secret put --config wrangler.local.jsonc`, then run:
 
 ```bash
 npm run deploy:cloudflare

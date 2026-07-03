@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "oomol-connect",
+  "name": "open-connector",
   "main": "src/server/cloudflare.ts",
   "compatibility_date": "2026-07-02",
   "compatibility_flags": ["nodejs_compat"],
@@ -21,7 +21,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "oomol-connect",
+      "database_name": "open-connector",
       "database_id": "<your-d1-database-id>",
       "migrations_dir": "migrations",
     },
@@ -29,7 +29,7 @@
   "r2_buckets": [
     {
       "binding": "TRANSIT_FILES",
-      "bucket_name": "oomol-connect-transit-files",
+      "bucket_name": "open-connector-transit-files",
     },
   ],
 }

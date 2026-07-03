@@ -48,6 +48,6 @@ before running Wrangler commands.
 Set secrets with Wrangler instead of committing them to config:
 
 ```bash
-npx wrangler secret put OOMOL_CONNECT_ADMIN_TOKEN
-npx wrangler secret put OOMOL_CONNECT_ENCRYPTION_KEY
+npx wrangler secret put OOMOL_CONNECT_ADMIN_TOKEN --config wrangler.local.jsonc
+npx wrangler secret put OOMOL_CONNECT_ENCRYPTION_KEY --config wrangler.local.jsonc
 ```

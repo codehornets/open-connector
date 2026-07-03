@@ -317,8 +317,8 @@ cd open-connector
 npm install
 cp wrangler.example.jsonc wrangler.local.jsonc
 npx wrangler login
-npx wrangler d1 create oomol-connect
-npx wrangler r2 bucket create oomol-connect-transit-files
+npx wrangler d1 create open-connector
+npx wrangler r2 bucket create open-connector-transit-files
 ```
 
 Update ignored `wrangler.local.jsonc` with the D1 `database_id` returned by Cloudflare before
@@ -337,7 +337,7 @@ npx wrangler secret put OOMOL_CONNECT_ENCRYPTION_KEY --config wrangler.local.jso
 schema and deploy:
 
 ```bash
-npx wrangler d1 migrations apply oomol-connect --remote --config wrangler.local.jsonc
+npx wrangler d1 migrations apply open-connector --remote --config wrangler.local.jsonc
 npm run deploy:cloudflare
 ```
 

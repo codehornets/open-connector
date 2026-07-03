@@ -308,8 +308,8 @@ cd open-connector
 npm install
 cp wrangler.example.jsonc wrangler.local.jsonc
 npx wrangler login
-npx wrangler d1 create oomol-connect
-npx wrangler r2 bucket create oomol-connect-transit-files
+npx wrangler d1 create open-connector
+npx wrangler r2 bucket create open-connector-transit-files
 ```
 
 运行远程 migration 或部署前，把 Cloudflare 返回的 D1 `database_id` 填入被忽略的
@@ -327,7 +327,7 @@ npx wrangler secret put OOMOL_CONNECT_ENCRYPTION_KEY --config wrangler.local.jso
 `OOMOL_CONNECT_ENCRYPTION_KEY`。然后应用 D1 schema 并部署：
 
 ```bash
-npx wrangler d1 migrations apply oomol-connect --remote --config wrangler.local.jsonc
+npx wrangler d1 migrations apply open-connector --remote --config wrangler.local.jsonc
 npm run deploy:cloudflare
 ```
 

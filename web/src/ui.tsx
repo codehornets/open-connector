@@ -39,6 +39,7 @@ export function App(): ReactNode {
   const [adminToken, setAdminToken] = useState("");
   const [locked, setLocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [runtimeChecked, setRuntimeChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
 
@@ -81,6 +82,7 @@ export function App(): ReactNode {
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
+          setRuntimeChecked(true);
         }
       });
 
@@ -109,6 +111,10 @@ export function App(): ReactNode {
     return <UnlockView loading={loading} message={error} onUnlock={unlock} />;
   }
 
+  if (!runtimeChecked) {
+    return <InitialLoadingView />;
+  }
+
   return (
     <AppShell
       data={data}
@@ -118,6 +124,19 @@ export function App(): ReactNode {
       onRefresh={refresh}
       onClearClientToken={clearClientToken}
     />
+  );
+}
+
+function InitialLoadingView(): ReactNode {
+  const t = useTranslate();
+
+  return (
+    <main className="unlock-screen">
+      <div className="loading-panel">
+        <Loader2 className="spin" size={16} />
+        {t("common.loadingRuntimeData")}
+      </div>
+    </main>
   );
 }
 
