@@ -61,13 +61,13 @@ flowchart LR
 Agent 可以发现 Action、查看 schema 和 scope、选择 connection alias，并通过网关执行调用。Provider
 secret 保留在运行时边界内；Agent 只拿到所需的 metadata、安全账号标签和执行结果。
 
-## 部署路径
+## 使用路径
 
-| 路径                | 适合谁                                | 提供什么                                                                   |
-| ------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| OSS Self-host       | 想完全掌控基础设施的开发者和团队      | 本地 Docker 或 Node runtime、SQLite 存储、MCP、HTTP、OpenAPI 和 Web 控制台 |
-| Cloudflare 兼容部署 | 想快速拥有轻量托管运行时的团队        | Workers runtime、D1 状态存储、R2 文件中转和控制台 Static Assets            |
-| OpenConnector SaaS  | 被 OAuth 申请周期或上线时间卡住的团队 | 托管鉴权和运行时路径，并保留后续迁移到私有化或自托管部署的空间             |
+| 路径                        | 适合谁                                | 提供什么                                                                   |
+| --------------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
+| OSS Self-host               | 想完全掌控基础设施的开发者和团队      | 本地 Docker 或 Node runtime、SQLite 存储、MCP、HTTP、OpenAPI 和 Web 控制台 |
+| Cloudflare 兼容部署         | 想快速拥有轻量托管运行时的团队        | Workers runtime、D1 状态存储、R2 文件中转和控制台 Static Assets            |
+| [oomol](https://oomol.com/) | 被 OAuth 申请周期或上线时间卡住的团队 | 托管鉴权和运行时路径，并保留后续迁移到私有化或自托管部署的空间             |
 
 ## Cloudflare 快速启动视频
 
@@ -142,11 +142,11 @@ D1、R2 和 Static Assets。
 Cloudflare 资源创建、migration、secret、本地 Worker preview 和远程部署步骤见
 [docs/cloudflare.md](docs/cloudflare.md)。
 
-## SaaS 版和 Wanta
+## oomol 和 Wanta
 
 OpenConnector 是面向自托管和可控运行时的开源网关。
 
-如果业务需要马上上线，OpenConnector SaaS 版可以先提供托管鉴权和运行时基础设施，并保留后续迁移到私有化或自托管部署的空间。
+如果业务需要马上上线，[oomol](https://oomol.com/) 提供 SaaS 版，可以先使用托管鉴权和运行时基础设施，并保留后续迁移到私有化或自托管部署的空间。
 
 针对希望直接使用桌面端 Agent 的小团队或个人，可以使用 [Wanta](https://wanta.ai/)。Wanta
 通过桌面端产品体验连接应用，并额外提供团队应用共享、权限控制、多账号连接、按 workspace 隔离连接等能力。
