@@ -110,12 +110,14 @@ export function nextLogoutState(state: LogoutState, succeeded: boolean): LogoutS
 export interface AuthLoadState {
   pendingUnlockToken: string;
   authSession: AuthSession;
+  locked: boolean;
 }
 
 export function nextAuthLoadState(state: AuthLoadState, session: AuthSession): AuthLoadState {
   return {
     pendingUnlockToken: session.authenticated ? "" : state.pendingUnlockToken,
     authSession: session,
+    locked: !session.authenticated,
   };
 }
 
@@ -185,13 +187,14 @@ export function App(): ReactNode {
             {
               pendingUnlockToken: pendingUnlockToken.current,
               authSession,
+              locked,
             },
             session,
           );
           pendingUnlockToken.current = nextAuth.pendingUnlockToken;
           setData(nextData);
           setAuthSession(nextAuth.authSession);
-          setLocked(!session.authenticated);
+          setLocked(nextAuth.locked);
           setError(session.authenticated ? null : requestUnlockToken.trim() ? t("shell.invalidUnlockToken") : null);
         }
       })
@@ -227,8 +230,7 @@ export function App(): ReactNode {
 
   function unlock(token: string): void {
     pendingUnlockToken.current = token;
-    setLocked(false);
-    setError(null);
+    setLoading(true);
     refresh();
   }
 
@@ -394,13 +396,15 @@ function AppShell(props: {
   );
 }
 
-function UnlockView(props: {
+export interface UnlockViewProps {
   loading: boolean;
   message: string | null;
   theme: ThemeMode;
   onThemeChange(theme: ThemeMode): void;
   onUnlock(token: string): void;
-}): ReactNode {
+}
+
+export function UnlockView(props: UnlockViewProps): ReactNode {
   const t = useTranslate();
   const [token, setToken] = useState("");
 
@@ -432,12 +436,29 @@ function UnlockView(props: {
               autoComplete="current-password"
             />
           </Label>
-          <Button type="submit" disabled={!token.trim() || props.loading}>
-            {props.loading ? <Loader2 className="spin" size={16} /> : null}
-            {t("unlock.unlockConsole")}
+          <Button
+            className="unlock-submit"
+            type="submit"
+            data-loading={props.loading}
+            aria-busy={props.loading}
+            disabled={!token.trim() || props.loading}
+          >
+            <span className="unlock-button-slot">
+              <Loader2
+                className={props.loading ? "unlock-button-spinner spin" : "unlock-button-spinner idle"}
+                size={16}
+                aria-hidden="true"
+              />
+            </span>
+            <span>{t("unlock.unlockConsole")}</span>
+            <span className="unlock-button-slot" aria-hidden="true" />
           </Button>
         </form>
-        {props.message ? <InlineError message={props.message} /> : null}
+        {props.message ? (
+          <div className="unlock-status" aria-live="polite">
+            <InlineError message={props.message} />
+          </div>
+        ) : null}
       </section>
     </main>
   );

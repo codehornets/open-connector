@@ -4,7 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAppI18n } from "./i18n";
-import { App, loadRuntimeData, nextAuthLoadState, nextLogoutState, subscribeToOAuthCompletions } from "./ui";
+import {
+  App,
+  loadRuntimeData,
+  nextAuthLoadState,
+  nextLogoutState,
+  subscribeToOAuthCompletions,
+  UnlockView,
+} from "./ui";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -22,6 +29,44 @@ describe("App", () => {
 
     expect(markup).not.toContain("app-shell");
     expect(markup).toContain("Loading runtime data");
+  });
+
+  it("does not reserve empty error space before loading starts", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        I18nProvider,
+        { i18n: createAppI18n("en") },
+        createElement(UnlockView, {
+          loading: false,
+          message: null,
+          theme: "light",
+          onThemeChange: () => {},
+          onUnlock: () => {},
+        }),
+      ),
+    );
+
+    expect(markup).not.toContain("unlock-status");
+    expect(markup).toContain("unlock-button-spinner idle");
+  });
+
+  it("marks the unlock button loading state separately from disabled state", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        I18nProvider,
+        { i18n: createAppI18n("en") },
+        createElement(UnlockView, {
+          loading: true,
+          message: null,
+          theme: "light",
+          onThemeChange: () => {},
+          onUnlock: () => {},
+        }),
+      ),
+    );
+
+    expect(markup).toContain('data-loading="true"');
+    expect(markup).toContain('aria-busy="true"');
   });
 });
 
@@ -55,12 +100,31 @@ describe("nextAuthLoadState", () => {
         {
           pendingUnlockToken: "local-token",
           authSession: { adminAuthConfigured: true, authenticated: false },
+          locked: true,
         },
         { adminAuthConfigured: true, authenticated: true },
       ),
     ).toEqual({
       pendingUnlockToken: "",
       authSession: { adminAuthConfigured: true, authenticated: true },
+      locked: false,
+    });
+  });
+
+  it("keeps the console locked while an unlock token is rejected", () => {
+    expect(
+      nextAuthLoadState(
+        {
+          pendingUnlockToken: "wrong-token",
+          authSession: { adminAuthConfigured: true, authenticated: false },
+          locked: true,
+        },
+        { adminAuthConfigured: true, authenticated: false },
+      ),
+    ).toEqual({
+      pendingUnlockToken: "wrong-token",
+      authSession: { adminAuthConfigured: true, authenticated: false },
+      locked: true,
     });
   });
 });
