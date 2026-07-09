@@ -200,6 +200,8 @@ export type ProviderDefinition = {
   service: string;
   /** Human-readable provider name. */
   displayName: string;
+  /** Human-readable provider summary for catalog browsing. */
+  description?: string;
   /** Broad catalog categories used by UI filtering. */
   categories: string[];
   /** Quick list of supported auth types for catalog filtering. */
@@ -304,6 +306,15 @@ export interface ExecutionContext {
 }
 
 /**
+ * Structured logger exposed to provider runtimes by the host server.
+ */
+export interface RuntimeLogger {
+  error(fields: Record<string, unknown>, message: string): void;
+  info(fields: Record<string, unknown>, message: string): void;
+  warn(fields: Record<string, unknown>, message: string): void;
+}
+
+/**
  * Optional metadata returned by provider credential validation.
  */
 export type CredentialValidationResult = {
@@ -325,6 +336,12 @@ export type CredentialValidationResult = {
    */
   metadata?: Record<string, unknown>;
 };
+
+export interface CredentialValidatorOptions {
+  fetcher: typeof fetch;
+  signal?: AbortSignal;
+  logger?: RuntimeLogger;
+}
 
 /**
  * Stable provider account identity stored with a local credential.
@@ -360,15 +377,15 @@ export type CredentialProfileInput = {
 export type CredentialValidators = {
   apiKey?: (
     input: { apiKey: string; values: Record<string, string> },
-    options: { fetcher: typeof fetch; signal?: AbortSignal },
+    options: CredentialValidatorOptions,
   ) => Promise<CredentialValidationResult | void>;
   customCredential?: (
     input: { values: Record<string, string> },
-    options: { fetcher: typeof fetch; signal?: AbortSignal },
+    options: CredentialValidatorOptions,
   ) => Promise<CredentialValidationResult | void>;
   oauth2?: (
     input: Extract<ResolvedCredential, { authType: "oauth2" }>,
-    options: { fetcher: typeof fetch; signal?: AbortSignal },
+    options: CredentialValidatorOptions,
   ) => Promise<CredentialValidationResult | void>;
 };
 
